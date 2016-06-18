@@ -13,6 +13,7 @@ import telepot
 import datetime
 from instagram.client import InstagramAPI
 from matplotlib import pyplot as plt
+import numpy as np
 
 #"Handmade" API
 import json
@@ -52,7 +53,7 @@ def handle(msg):
             bot.sendMessage(chat_id, \
             'El compte [@joventutcomunistacat](https://www.instagram.com/joventutcomunistacat/) té actualment *{0}* persones com a seguidores!'\
             .format(followers), parse_mode='Markdown')
-        elif command == '/graph':
+        elif '/graph' in command:
             timestamp = []
             followers = []
             with open('followers.log', 'r') as f_log:
@@ -60,14 +61,24 @@ def handle(msg):
                 for row in logreader:
                     timestamp.append(datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'))
                     followers.append(int(row[1]))
-            
-            timestamp_ticks = [date.strftime('%H:%M') if not index%6 else '' for index, date in enumerate(timestamp)]
-            timestamp_decim = [date.hour + date.minute/60 for date in timestamp]
+            f_log.close()
+            timestamp_ticks = np.array([date.strftime('%H:%M') if not index%12 else '' for index, date in enumerate(timestamp)])
+            timestamp_decim = np.array([date.hour + date.minute/60 for date in timestamp])
             
             plt.xticks(timestamp_decim, timestamp_ticks)
             locs, labels = plt.xticks()
             plt.setp(labels, rotation=45)
             plt.plot(timestamp_decim, followers, 'r.-', label='@joventutcomunistacat followers')
+            if ' fit' in command:
+                try:
+                    pol_order = int(command.split(' ')[-1])
+                except:
+                    pol_order = 1
+                
+                fitted_coeff = np.polyfit(timestamp_decim, followers, pol_order)
+                fitted_followers = np.polyval(fitted_coeff, timestamp_decim) 
+                
+                plt.plot(timestamp_decim, fitted_followers, 'g--', label='pol. fitted followers (ord. {0})'.format(pol_order))
             #plt.show()
             ax = list(plt.axis())
             plt.axis([round(ax[0]), round(ax[1])+1, round(ax[2], -1)-10, round(ax[3], -2)]), 
