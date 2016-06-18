@@ -7,10 +7,12 @@ Created on Fri Jun 17 17:18:01 2016
 
 
 import sys
+import csv
 import time
 import telepot
 import datetime
 from instagram.client import InstagramAPI
+from matplotlib import pyplot as plt
 
 #"Handmade" API
 import json
@@ -42,14 +44,40 @@ def handle(msg):
     
     if command[0] == '/':
         if command == '/start':
-            bot.sendMessage(chat_id, 'Hola! Sóc l\'Insta Gramsci Bot un robot creat per l\'Instagram de la JCC.')
+            bot.sendMessage(chat_id, 'Hola! Sóc l\'Insta Gramsci Bot un robot creat per l\'Instagram de la JCC. Prova /followers o /graph.')
         elif command == '/help':
-            bot.sendMessage(chat_id, 'Hola! Sóc l\'Insta Gramsci Bot un robot creat per l\'Instagram de la JCC.')
+            bot.sendMessage(chat_id, 'Hola! Sóc l\'Insta Gramsci Bot un robot creat per l\'Instagram de la JCC. Prova /followers o /graph.')
         elif command == '/followers':
             followers = get_insta_follows()
             bot.sendMessage(chat_id, \
             'El compte [@joventutcomunistacat](https://www.instagram.com/joventutcomunistacat/) té actualment *{0}* persones com a seguidores!'\
             .format(followers), parse_mode='Markdown')
+        elif command == '/graph':
+            timestamp = []
+            followers = []
+            with open('followers.log', 'r') as f_log:
+                logreader = csv.reader(f_log, delimiter=';')
+                for row in logreader:
+                    timestamp.append(datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'))
+                    followers.append(int(row[1]))
+            
+            timestamp_ticks = [date.strftime('%H:%M') if not index%6 else '' for index, date in enumerate(timestamp)]
+            timestamp_decim = [date.hour + date.minute/60 for date in timestamp]
+            
+            plt.xticks(timestamp_decim, timestamp_ticks)
+            locs, labels = plt.xticks()
+            plt.setp(labels, rotation=45)
+            plt.plot(timestamp_decim, followers, 'r.-', label='@joventutcomunistacat followers')
+            #plt.show()
+            ax = list(plt.axis())
+            plt.axis([round(ax[0]), round(ax[1])+1, round(ax[2], -1)-10, round(ax[3], -2)]), 
+            plt.xlabel('Hour'), plt.ylabel('Followers')
+            plt.grid()
+            plt.legend()
+            plt.savefig('temp_record_graph.png')
+            bot.sendPhoto(chat_id, open('temp_record_graph.png', 'rb'))
+            plt.close()
+            
             
         else:
             bot.sendMessage(chat_id, \
