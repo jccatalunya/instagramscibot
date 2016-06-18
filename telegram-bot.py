@@ -9,7 +9,6 @@ Created on Fri Jun 17 17:18:01 2016
 import sys
 import time
 import telepot
-import random
 import datetime
 
 #"Handmade" API
@@ -58,6 +57,19 @@ bot = telepot.Bot(telegram_token)
 bot.message_loop(handle)
 print('Listening ...')
 
+captured = False
+
 # Keep the program running.
 while 1:
+    
+    actual_time = datetime.datetime.now()
+    if not actual_time.minute % 5:
+        if not captured:
+            response = requests.get(url)
+            j = json.loads(response.text)
+            followers = str(j['data']['counts']['followed_by'])
+            print(followers)
+            captured = True
+    else:
+        captured = False
     time.sleep(10)
