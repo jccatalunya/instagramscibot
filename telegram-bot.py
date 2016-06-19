@@ -11,6 +11,8 @@ import csv
 import time
 import telepot
 import datetime
+from dateutil.tz import tzlocal
+import pytz
 from instagram.client import InstagramAPI
 import numpy as np
 try:
@@ -118,11 +120,15 @@ captured = False
 while 1:
     
     actual_time = datetime.datetime.now()
+    local = tzlocal()
+    actual_time = actual_time.replace(tzinfo = local)
+    tz = pytz.timezone('Europe/Madrid')
+    actual_time = actual_time.astimezone(tz)
     if not actual_time.minute % 5:
         if not captured:
             followers = get_insta_follows()
             with open('followers.log', 'a') as f_log:
-                f_log.write('{0};{1}\n'.format(actual_time, followers))
+                f_log.write('{0};{1}\n'.format(str(actual_time)[:-6], followers))
             print('Revisió cada 5 min! La JCC té {0} seguidores'.format(followers))
             captured = True
     else:
