@@ -15,6 +15,8 @@ from dateutil.tz import tzlocal
 import pytz
 from instagram.client import InstagramAPI
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 try:
     from matplotlib import pyplot as plt
     GRAPH = True
