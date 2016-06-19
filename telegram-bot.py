@@ -52,6 +52,7 @@ def handle(msg):
     command = command.split('@')[0]
     
     if command[0] == '/':
+        #TODO create a log of Telegram  users that send commands
         if command == '/start':
             bot.sendMessage(chat_id, 'Hola! Sóc l\'Insta Gramsci Bot un robot creat per l\'Instagram de la JCC. Prova /followers o /graph.')
         elif command == '/help':
@@ -63,13 +64,19 @@ def handle(msg):
             .format(followers), parse_mode='Markdown')
         elif '/graph' in command:
             if GRAPH:
+                args = command.split(' ')
+                day = int(args[args.index('day')+1]) if 'day' in args else datetime.datetime.today().day
+                date0 = datetime.datetime.strptime('2016-06-{0} 12:00'.format(day), '%Y-%m-%d %H:%M')
+                date1 = datetime.datetime.strptime('2016-06-{0} 12:00'.format(day+1), '%Y-%m-%d %H:%M')
                 timestamp = []
                 followers = []
                 with open('followers.log', 'r') as f_log:
                     logreader = csv.reader(f_log, delimiter=';')
                     for row in logreader:
-                        timestamp.append(datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'))
-                        followers.append(int(row[1]))
+                        date = datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f')
+                        if date0 < date < date1:
+                            timestamp.append(date)
+                            followers.append(int(row[1]))
                 f_log.close()
                 timestamp_ticks = np.array([date.strftime('%H:%M') if not index%24 else '' for index, date in enumerate(timestamp)])
                 timestamp_decim = np.array([date.day + date.hour/24 + date.minute/60/24 for date in timestamp])
@@ -80,7 +87,7 @@ def handle(msg):
                 plt.plot(timestamp_decim, followers, 'r.-', label='@joventutcomunistacat followers')
                 if ' fit' in command:
                     try:
-                        pol_order = int(command.split(' ')[-1])
+                        pol_order = int(args[args.index('fit')+1])
                     except:
                         pol_order = 1
                     
@@ -90,8 +97,9 @@ def handle(msg):
                     plt.plot(timestamp_decim, fitted_followers, 'g--', label='pol. fitted followers (ord. {0})'.format(pol_order))
                 #plt.show()
                 ax = list(plt.axis())
-                plt.axis([round(ax[0]), round(ax[1])+1, round(ax[2], -1)-10, round(ax[3], -1)+30]), 
+                plt.axis([ax[0], ax[0]+1, round(ax[2], -1)-10, round(ax[3], -1)+30]), 
                 plt.xlabel('Hour'), plt.ylabel('Followers')
+                plt.title('from {0} to {1}'.format(date0, date1))
                 #plt.grid()
                 plt.legend()
                 plt.savefig('temp_record_graph.png')
