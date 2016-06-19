@@ -5,7 +5,7 @@ Created on Fri Jun 17 17:18:01 2016
 @author: isman7
 """
 
-
+from __future__ import division
 import sys
 import csv
 import time
