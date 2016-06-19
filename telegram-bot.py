@@ -12,8 +12,14 @@ import time
 import telepot
 import datetime
 from instagram.client import InstagramAPI
-from matplotlib import pyplot as plt
 import numpy as np
+try:
+    from matplotlib import pyplot as plt
+    GRAPH = True
+except ImportError:
+    print('There is no tkinter aviable.')    
+    GRAPH = False
+
 
 #"Handmade" API
 import json
@@ -54,42 +60,45 @@ def handle(msg):
             'El compte [@joventutcomunistacat](https://www.instagram.com/joventutcomunistacat/) té actualment *{0}* persones com a seguidores!'\
             .format(followers), parse_mode='Markdown')
         elif '/graph' in command:
-            timestamp = []
-            followers = []
-            with open('followers.log', 'r') as f_log:
-                logreader = csv.reader(f_log, delimiter=';')
-                for row in logreader:
-                    timestamp.append(datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'))
-                    followers.append(int(row[1]))
-            f_log.close()
-            timestamp_ticks = np.array([date.strftime('%H:%M') if not index%12 else '' for index, date in enumerate(timestamp)])
-            timestamp_decim = np.array([date.hour + date.minute/60 for date in timestamp])
-            
-            plt.xticks(timestamp_decim, timestamp_ticks)
-            locs, labels = plt.xticks()
-            plt.setp(labels, rotation=45)
-            plt.plot(timestamp_decim, followers, 'r.-', label='@joventutcomunistacat followers')
-            if ' fit' in command:
-                try:
-                    pol_order = int(command.split(' ')[-1])
-                except:
-                    pol_order = 1
+            if GRAPH:
+                timestamp = []
+                followers = []
+                with open('followers.log', 'r') as f_log:
+                    logreader = csv.reader(f_log, delimiter=';')
+                    for row in logreader:
+                        timestamp.append(datetime.datetime.strptime(row[0], '%Y-%m-%d %H:%M:%S.%f'))
+                        followers.append(int(row[1]))
+                f_log.close()
+                timestamp_ticks = np.array([date.strftime('%H:%M') if not index%24 else '' for index, date in enumerate(timestamp)])
+                timestamp_decim = np.array([date.day + date.hour/24 + date.minute/60/24 for date in timestamp])
                 
-                fitted_coeff = np.polyfit(timestamp_decim, followers, pol_order)
-                fitted_followers = np.polyval(fitted_coeff, timestamp_decim) 
+                plt.xticks(timestamp_decim, timestamp_ticks)
+                locs, labels = plt.xticks()
+                plt.setp(labels, rotation=45)
+                plt.plot(timestamp_decim, followers, 'r.-', label='@joventutcomunistacat followers')
+                if ' fit' in command:
+                    try:
+                        pol_order = int(command.split(' ')[-1])
+                    except:
+                        pol_order = 1
+                    
+                    fitted_coeff = np.polyfit(timestamp_decim, followers, pol_order)
+                    fitted_followers = np.polyval(fitted_coeff, timestamp_decim) 
+                    
+                    plt.plot(timestamp_decim, fitted_followers, 'g--', label='pol. fitted followers (ord. {0})'.format(pol_order))
+                #plt.show()
+                ax = list(plt.axis())
+                plt.axis([round(ax[0]), round(ax[1])+1, round(ax[2], -1)-10, round(ax[3], -1)+30]), 
+                plt.xlabel('Hour'), plt.ylabel('Followers')
+                #plt.grid()
+                plt.legend()
+                plt.savefig('temp_record_graph.png')
+                bot.sendPhoto(chat_id, open('temp_record_graph.png', 'rb'))
+                plt.close()
+            else:
+                bot.sendMessage(chat_id, \
+                'Disculpes, la comanda /graph no està habilitada en aquest moement. El soviet treballarà per arreglar-la.')
                 
-                plt.plot(timestamp_decim, fitted_followers, 'g--', label='pol. fitted followers (ord. {0})'.format(pol_order))
-            #plt.show()
-            ax = list(plt.axis())
-            plt.axis([round(ax[0]), round(ax[1])+1, round(ax[2], -1)-10, round(ax[3], -2)]), 
-            plt.xlabel('Hour'), plt.ylabel('Followers')
-            plt.grid()
-            plt.legend()
-            plt.savefig('temp_record_graph.png')
-            bot.sendPhoto(chat_id, open('temp_record_graph.png', 'rb'))
-            plt.close()
-            
-            
         else:
             bot.sendMessage(chat_id, \
             'Disculpes, sembla que la comanda %s no ha sigut implementada pel soviet.'\
